@@ -1,7 +1,9 @@
 package com.mindhub.product_microservice.services.impl;
 
+import com.mindhub.product_microservice.dtos.ExistentProductDTO;
 import com.mindhub.product_microservice.dtos.ProductDTO;
 import com.mindhub.product_microservice.dtos.ProductDTOResquest;
+import com.mindhub.product_microservice.dtos.ProductQuantityDTO;
 import com.mindhub.product_microservice.exceptions.CustomException;
 import com.mindhub.product_microservice.models.Product;
 import com.mindhub.product_microservice.repositories.ProductRepository;
@@ -10,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -129,6 +132,63 @@ public class ProductServiceImpl implements ProductService {
         if (id == null || id <= 0){
             throw new CustomException("Invalid id.");
         }
+    }
+
+
+
+    @Override
+    public Product getProductById(Long id) throws CustomException {
+        Product product = productRepository.findById(id)
+                .orElseThrow(()->new CustomException("Product not found",HttpStatus.NOT_FOUND));
+        return product;
+    }
+
+    @Override
+    public boolean existsProductById(Long id)  {
+        boolean exists = productRepository.existsById(id);
+        if (!exists){
+            throw new CustomException("Product doesn't exist",HttpStatus.NOT_FOUND);
+        }
+        return exists;
+    }
+
+    @Override
+    public List<ExistentProductDTO> getAllAvailableProducts(List<ProductQuantityDTO> productQuantityList) {
+        List<ExistentProductDTO> existentProducts = new ArrayList<>();
+        List<String> invalidProducts = new ArrayList<>(); // Para registrar productos con errores
+
+        for (ProductQuantityDTO product : productQuantityList) {
+            try {
+                if (!existsProductById(product.getId())) {
+                    invalidProducts.add("Unexpected error processing product with ID: " + product.getId());
+                    continue;
+                }
+
+                Product realProduct = getProductById(product.getId()); // Obtengo el producto real
+
+                if (product.getQuantity() <= 0 || realProduct.getStock() < product.getQuantity()) {
+                    invalidProducts.add("Insufficient stock for product with ID " + product.getId());
+                    continue;
+                }
+
+                // Si el producto es válido lo agrego a la lista y actualizo el stock
+                existentProducts.add(new ExistentProductDTO(
+                        product.getId(),
+                        realProduct.getPrice(),
+                        product.getQuantity()
+                ));
+                realProduct.setStock(realProduct.getStock() - product.getQuantity());
+                productRepository.save(realProduct);
+            } catch (Exception e) {
+                invalidProducts.add("Unexpected error processing product with ID: " + product.getId());
+            }
+        }
+        if (!invalidProducts.isEmpty()) {
+            System.out.println("Invalid products: " + String.join(", ", invalidProducts));
+        }
+
+
+        return existentProducts;
     }
 }
 
