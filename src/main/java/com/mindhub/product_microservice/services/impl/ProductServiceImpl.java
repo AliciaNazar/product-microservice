@@ -152,44 +152,41 @@ public class ProductServiceImpl implements ProductService {
         return exists;
     }
 
+
+
+
+
     @Override
     public List<ExistentProductDTO> getAllAvailableProducts(List<ProductQuantityDTO> productQuantityList) {
         List<ExistentProductDTO> existentProducts = new ArrayList<>();
-        List<String> invalidProducts = new ArrayList<>(); // Para registrar productos con errores
 
-        for (ProductQuantityDTO product : productQuantityList) {
-            try {
-                if (!existsProductById(product.getId())) {
-                    invalidProducts.add("Unexpected error processing product with ID: " + product.getId());
-                    continue;
-                }
-
-                Product realProduct = getProductById(product.getId()); // Obtengo el producto real
-
-                if (product.getQuantity() <= 0 || realProduct.getStock() < product.getQuantity()) {
-                    invalidProducts.add("Insufficient stock for product with ID " + product.getId());
-                    continue;
-                }
-
-                // Si el producto es válido lo agrego a la lista y actualizo el stock
-                existentProducts.add(new ExistentProductDTO(
-                        product.getId(),
-                        realProduct.getPrice(),
-                        product.getQuantity()
-                ));
-                realProduct.setStock(realProduct.getStock() - product.getQuantity());
-                productRepository.save(realProduct);
-            } catch (Exception e) {
-                invalidProducts.add("Unexpected error processing product with ID: " + product.getId());
+        productQuantityList.forEach(product -> {
+            if (productRepository.existsById(product.getId())) {
+                try {
+                    Product realProduct = getProductById(product.getId());
+                    if (realProduct.getStock() >= product.getQuantity()) {
+                        existentProducts.add(new ExistentProductDTO( //agrego el producto válido
+                                product.getId(),
+                                realProduct.getPrice(),
+                                product.getQuantity()
+                        ));
+                        realProduct.setStock(realProduct.getStock() - product.getQuantity()); //actualizo stock
+                        productRepository.save(realProduct);
+                    } else {
+                        existentProducts.add(new ExistentProductDTO( // agrego producto con stock insuficiente
+                                product.getId(),
+                                null,
+                                product.getQuantity()
+                        ));
+                    }
+                } catch (Exception e) {}
             }
-        }
-        if (!invalidProducts.isEmpty()) {
-            System.out.println("Invalid products: " + String.join(", ", invalidProducts));
-        }
-
+        });
 
         return existentProducts;
     }
+
+
 }
 
 
