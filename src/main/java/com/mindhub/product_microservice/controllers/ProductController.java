@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/products")
 public class ProductController {
 
     @Autowired
@@ -27,7 +27,7 @@ public class ProductController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Products retrieved successfully."),
     })
-    @GetMapping("/products")
+    @GetMapping()
     public ResponseEntity<List<ProductDTO>> getProducts(){
         List<ProductDTO> products = this.productService.getProducts();
         return ResponseEntity.ok(products);
@@ -38,7 +38,7 @@ public class ProductController {
             @ApiResponse(responseCode = "201", description = "Product created successfully."),
             @ApiResponse(responseCode = "400", description = "Invalid input data."),
     })
-    @PostMapping("/products")
+    @PostMapping()
     public ResponseEntity<ProductDTO> createProduct(@RequestBody ProductDTOResquest productDTOResquest){
         ProductDTO productDTO = this.productService.createProduct(productDTOResquest);
         return ResponseEntity.status(HttpStatus.CREATED).body(productDTO);
@@ -63,7 +63,7 @@ public class ProductController {
             @ApiResponse(responseCode = "204", description = "Product deleted successfully."),
             @ApiResponse(responseCode = "404", description = "Product not found.")
     })
-    @DeleteMapping("products/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable("id") Long id){
         this.productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
@@ -82,7 +82,7 @@ public class ProductController {
             @ApiResponse(responseCode = "404", description = "One or more products not found."),
             @ApiResponse(responseCode = "500", description = "Internal server error.")
     })
-    @PutMapping("/products")
+    @PutMapping()
     public ResponseEntity<List<ExistentProductDTO>> existsProducts(@RequestBody List<ProductQuantityDTO> productList){
         List<ExistentProductDTO> products = productService.getAllAvailableProducts(productList);
         return ResponseEntity.ok(products);
