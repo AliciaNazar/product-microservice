@@ -36,6 +36,11 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
+    @Operation(summary = "Get a product by ID", description = "Retrieve a specific product using its ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Product retrieved successfully."),
+            @ApiResponse(responseCode = "404", description = "Product not found.")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) throws CustomException {
         try{
@@ -70,12 +75,23 @@ public class ProductController {
     }
 
 
+    @Operation(summary = "Check available products", description = "Checks the availability of a list of products based on a list with the required quantity and returns a collection with those products and their stock")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Availability checked successfully."),
+            @ApiResponse(responseCode = "400", description = "Invalid request body.")
+    })
     @PutMapping
     public ResponseEntity<HashMap<Long, Integer>> existsProducts(@RequestBody List<ProductQuantityDTO> productQuantityDTOList){
         HashMap<Long, Integer> products = productService.getAllAvailableProducts(productQuantityDTOList);
         return ResponseEntity.ok(products);
     }
 
+    @Operation(summary = "Update product stock for order", description = "Updates the stock of products when an order is placed.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Stock updated successfully."),
+            @ApiResponse(responseCode = "400", description = "Invalid request data."),
+            @ApiResponse(responseCode = "404", description = "One or more products not found.")
+    })
     @PutMapping("to-order")
     public ResponseEntity<String> existProduct(@RequestBody List<ProductQuantityDTO> productQuantityList) throws CustomException {
 

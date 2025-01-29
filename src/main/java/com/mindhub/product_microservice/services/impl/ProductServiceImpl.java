@@ -27,14 +27,14 @@ public class ProductServiceImpl implements ProductService {
         List<Product> productList = productRepository.findAll();
         Set<ProductDTO> productDTOs = productList.stream()
                 .map(product -> new ProductDTO(product))
-                        .collect(Collectors.toSet());
+                .collect(Collectors.toSet());
         return productDTOs;
     }
 
     @Override
     public Product getProductById(Long id) throws CustomException {
         Product product = productRepository.findById(id)
-                .orElseThrow(()->new CustomException("Product not found.", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Product not found.", HttpStatus.NOT_FOUND));
         return product;
     }
 
@@ -51,8 +51,6 @@ public class ProductServiceImpl implements ProductService {
         return new ProductDTO(product);
     }
 
-
-
     @Override
     public ProductDTO updateProduct (Long id, ProductDTOResquest productDTOResquest){
         inputProductValidations(productDTOResquest);
@@ -67,7 +65,6 @@ public class ProductServiceImpl implements ProductService {
         return new ProductDTO(product);
     }
 
-
     @Override
     public ProductDTO updateProductStock (Long id, ProductDTOResquest productDTOResquest){
         stockValidations(productDTOResquest.getStock());
@@ -81,10 +78,7 @@ public class ProductServiceImpl implements ProductService {
         }else{
             throw new CustomException("Product not found.", HttpStatus.NOT_FOUND);
         }
-
-
     }
-
 
     @Override
     public void deleteProduct(Long id){
@@ -94,11 +88,7 @@ public class ProductServiceImpl implements ProductService {
         }else{
             throw new CustomException("Product not found.", HttpStatus.NOT_FOUND);
         }
-
-
-
     }
-
 
     private void inputProductValidations(ProductDTOResquest productDTOResquest){
         productNameValidations(productDTOResquest.getName());
@@ -143,9 +133,6 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
-
-
-
     @Override
     public boolean existsProductById(Long id)  {
         boolean exists = productRepository.existsById(id);
@@ -155,8 +142,6 @@ public class ProductServiceImpl implements ProductService {
         return exists;
     }
 
-
-
     @Override
     public HashMap<Long, Integer> getAllAvailableProducts(List<ProductQuantityDTO> productQuantityList){
         HashMap<Long, Integer> availableProductMap = new HashMap<>();
@@ -165,13 +150,10 @@ public class ProductServiceImpl implements ProductService {
             try{
                 Product aux = getProductById(product.getId());
                 availableProductMap.put(aux.getId(), aux.getStock());
-            }catch (Exception e){
-                throw new CustomException("Product doesn't exist",HttpStatus.NOT_FOUND);
-            }
+            }catch (Exception e){}
         });
         return availableProductMap;
     }
-
 
     @Override
     public ExistentProductDTO getOneAvailableProduct(ProductQuantityDTO productQuantity){
@@ -189,7 +171,6 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
-
     @Override
     public void updateProductsQuantity(List<ProductQuantityDTO> productQuantityList){
         productQuantityList.forEach(product ->{
@@ -199,19 +180,16 @@ public class ProductServiceImpl implements ProductService {
         });
     }
 
-
     @Override
     public void updateProductQuantity(Long idProduct, Integer quantity) throws CustomException {
         Product product = getProductById(idProduct);
         if (product.getStock()+quantity<0){
             throw new CustomException("Not enough stock", HttpStatus.NOT_ACCEPTABLE);
         }
-
         product.setStock(product.getStock()+quantity);
         productRepository.save(product);
 
     }
-
 
 }
 
