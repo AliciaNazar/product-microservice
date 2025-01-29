@@ -12,9 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -22,13 +21,21 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private ProductRepository productRepository;
 
+
     @Override
-    public List<ProductDTO> getProducts() {
-        List<Product> products = productRepository.findAll();
-        List<ProductDTO> productDTOs = products.stream()
+    public Set<ProductDTO> getAllProducts() {
+        List<Product> productList = productRepository.findAll();
+        Set<ProductDTO> productDTOs = productList.stream()
                 .map(product -> new ProductDTO(product))
-                .toList();
+                        .collect(Collectors.toSet());
         return productDTOs;
+    }
+
+    @Override
+    public Product getProductById(Long id) throws CustomException {
+        Product product = productRepository.findById(id)
+                .orElseThrow(()->new CustomException("Product not found.", HttpStatus.NOT_FOUND));
+        return product;
     }
 
     @Override
@@ -43,6 +50,8 @@ public class ProductServiceImpl implements ProductService {
         product = this.productRepository.save(product);
         return new ProductDTO(product);
     }
+
+
 
     @Override
     public ProductDTO updateProduct (Long id, ProductDTOResquest productDTOResquest){
@@ -136,12 +145,6 @@ public class ProductServiceImpl implements ProductService {
 
 
 
-    @Override
-    public Product getProductById(Long id) throws CustomException {
-        Product product = productRepository.findById(id)
-                .orElseThrow(()->new CustomException("Product not found",HttpStatus.NOT_FOUND));
-        return product;
-    }
 
     @Override
     public boolean existsProductById(Long id)  {
@@ -154,36 +157,59 @@ public class ProductServiceImpl implements ProductService {
 
 
 
+    @Override
+    public HashMap<Long, Integer> getAllAvailableProducts(List<ProductQuantityDTO> productQuantityList){
+        HashMap<Long, Integer> availableProductMap = new HashMap<>();
+
+        productQuantityList.forEach( product -> {
+            try{
+                Product aux = getProductById(product.getId());
+                availableProductMap.put(aux.getId(), aux.getStock());
+            }catch (Exception e){
+                throw new CustomException("Product doesn't exist",HttpStatus.NOT_FOUND);
+            }
+        });
+        return availableProductMap;
+    }
 
 
     @Override
-    public List<ExistentProductDTO> getAllAvailableProducts(List<ProductQuantityDTO> productQuantityList) {
-        List<ExistentProductDTO> existentProducts = new ArrayList<>();
-
-        productQuantityList.forEach(product -> {
-            if (productRepository.existsById(product.getId())) {
-                try {
-                    Product realProduct = getProductById(product.getId());
-                    if (realProduct.getStock() >= product.getQuantity()) {
-                        existentProducts.add(new ExistentProductDTO( //agrego el producto válido
-                                product.getId(),
-                                realProduct.getPrice(),
-                                product.getQuantity()
-                        ));
-                        realProduct.setStock(realProduct.getStock() - product.getQuantity()); //actualizo stock
-                        productRepository.save(realProduct);
-                    } else {
-                        existentProducts.add(new ExistentProductDTO( // agrego producto con stock insuficiente
-                                product.getId(),
-                                null,
-                                product.getQuantity()
-                        ));
-                    }
-                } catch (Exception e) {}
+    public ExistentProductDTO getOneAvailableProduct(ProductQuantityDTO productQuantity){
+        try {
+            Product product = getProductById(productQuantity.getId());
+            if (product.getStock()>= productQuantity.getQuantity()){
+                product.setStock(product.getStock()-productQuantity.getQuantity());
+                productRepository.save(product);
+                return new ExistentProductDTO(product.getId(), product.getPrice(), productQuantity.getQuantity());
+            }else{
+                return new ExistentProductDTO(product.getId(), null, productQuantity.getQuantity());
             }
-        });
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
-        return existentProducts;
+
+    @Override
+    public void updateProductsQuantity(List<ProductQuantityDTO> productQuantityList){
+        productQuantityList.forEach(product ->{
+            try {
+                updateProductQuantity(product.getId(), product.getQuantity());
+            } catch (Exception e) {}
+        });
+    }
+
+
+    @Override
+    public void updateProductQuantity(Long idProduct, Integer quantity) throws CustomException {
+        Product product = getProductById(idProduct);
+        if (product.getStock()+quantity<0){
+            throw new CustomException("Not enough stock", HttpStatus.NOT_ACCEPTABLE);
+        }
+
+        product.setStock(product.getStock()+quantity);
+        productRepository.save(product);
+
     }
 
 

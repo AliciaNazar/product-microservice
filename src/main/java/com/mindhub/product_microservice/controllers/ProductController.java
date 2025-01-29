@@ -4,6 +4,8 @@ import com.mindhub.product_microservice.dtos.ExistentProductDTO;
 import com.mindhub.product_microservice.dtos.ProductDTO;
 import com.mindhub.product_microservice.dtos.ProductDTOResquest;
 import com.mindhub.product_microservice.dtos.ProductQuantityDTO;
+import com.mindhub.product_microservice.exceptions.CustomException;
+import com.mindhub.product_microservice.models.Product;
 import com.mindhub.product_microservice.services.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -28,9 +31,19 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Products retrieved successfully."),
     })
     @GetMapping()
-    public ResponseEntity<List<ProductDTO>> getProducts(){
-        List<ProductDTO> products = this.productService.getProducts();
+    public ResponseEntity<Set<ProductDTO>> getProducts(){
+        Set<ProductDTO> products = this.productService.getAllProducts();
         return ResponseEntity.ok(products);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Product> getProductById(@PathVariable Long id) throws CustomException {
+        try{
+            Product product = productService.getProductById(id);
+            return ResponseEntity.ok(product);
+        }catch (Exception e){
+            throw new CustomException("Product not found",HttpStatus.NOT_FOUND);
+        }
     }
 
     @Operation(summary = "Create a new product", description = "Registers a new product in the system.")
@@ -44,19 +57,6 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).body(productDTO);
     }
 
-//    @Operation(summary = "Update the stock of a product.", description = "Updates the stock of a specific product identified by its ID.")
-//    @ApiResponses(value = {
-//            @ApiResponse(responseCode = "200", description = "Stock updated successfully."),
-//            @ApiResponse(responseCode = "404", description = "Product not found"),
-//            @ApiResponse(responseCode = "400", description = "Invalid request")
-//            })
-//    @PutMapping("/products/{id}")
-//    public ResponseEntity<ProductDTO> updateProductStock(
-//            @PathVariable("id") Long id,
-//            @RequestBody ProductDTOResquest productDTOResquest){
-//        ProductDTO productUpdated = this.productService.updateProductStock(id, productDTOResquest);
-//        return ResponseEntity.ok(productUpdated);
-//    }
 
     @Operation(summary = "Delete a product by ID", description = "Deletes an existing product by the provided ID.")
     @ApiResponses(value = {
@@ -64,28 +64,25 @@ public class ProductController {
             @ApiResponse(responseCode = "404", description = "Product not found.")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProduct(@PathVariable("id") Long id){
+    public ResponseEntity<Void> deleteProduct(@PathVariable("id") Long id){
         this.productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
 
 
-
-
-    @Operation(
-            summary = "Verify product availability",
-            description = "Checks the availability and stock of the provided list of products. Updates stock levels if the requested quantities are available."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Products verified successfully. Returns a list of available products."),
-            @ApiResponse(responseCode = "400", description = "Invalid request format or data."),
-            @ApiResponse(responseCode = "404", description = "One or more products not found."),
-            @ApiResponse(responseCode = "500", description = "Internal server error.")
-    })
-    @PutMapping()
-    public ResponseEntity<List<ExistentProductDTO>> existsProducts(@RequestBody List<ProductQuantityDTO> productList){
-        List<ExistentProductDTO> products = productService.getAllAvailableProducts(productList);
+    @PutMapping
+    public ResponseEntity<HashMap<Long, Integer>> existsProducts(@RequestBody List<ProductQuantityDTO> productQuantityDTOList){
+        HashMap<Long, Integer> products = productService.getAllAvailableProducts(productQuantityDTOList);
         return ResponseEntity.ok(products);
     }
+
+    @PutMapping("to-order")
+    public ResponseEntity<String> existProduct(@RequestBody List<ProductQuantityDTO> productQuantityList) throws CustomException {
+
+        productService.updateProductsQuantity(productQuantityList);
+        return new ResponseEntity<String>("The update was successful", HttpStatus.OK);
+    }
+
+
 }
 
