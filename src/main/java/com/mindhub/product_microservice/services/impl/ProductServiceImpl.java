@@ -11,6 +11,7 @@ import com.mindhub.product_microservice.services.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -39,6 +40,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public ProductDTO createProduct(ProductDTOResquest productDTOResquest) {
         inputProductValidations(productDTOResquest);
 
@@ -52,18 +54,21 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductDTO updateProduct (Long id, ProductDTOResquest productDTOResquest){
+    @Transactional(rollbackFor = Exception.class)
+    public ExistentProductDTO updateProduct(Long id, ProductDTOResquest productDTOResquest) throws CustomException {
         inputProductValidations(productDTOResquest);
-
-        Product product = this.productRepository.findById(id)
-                .orElseThrow();
-        product.setName(productDTOResquest.getName());
+        Product product = productRepository.findById(id)
+                .orElseThrow(()->new CustomException("Product not found.", HttpStatus.NOT_FOUND));
         product.setDescription(productDTOResquest.getDescription());
-        product.setStock(productDTOResquest.getStock());
         product.setPrice(productDTOResquest.getPrice());
-        product = this.productRepository.save(product);
-        return new ProductDTO(product);
+        product.setStock(productDTOResquest.getStock());
+        product.setName(productDTOResquest.getName());
+        product = productRepository.save(product);
+
+        return new ExistentProductDTO(product.getId(),product.getPrice(), product.getStock());
     }
+
+
 
     @Override
     public ProductDTO updateProductStock (Long id, ProductDTOResquest productDTOResquest){
@@ -190,6 +195,12 @@ public class ProductServiceImpl implements ProductService {
         productRepository.save(product);
 
     }
+
+    @Override
+    public boolean existsProductByName(String name) {
+        return productRepository.existsByName(name);
+    }
+
 
 }
 

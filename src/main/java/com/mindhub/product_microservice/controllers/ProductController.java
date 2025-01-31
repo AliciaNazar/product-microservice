@@ -1,5 +1,6 @@
 package com.mindhub.product_microservice.controllers;
 
+import com.mindhub.product_microservice.config.JwtUtils;
 import com.mindhub.product_microservice.dtos.ExistentProductDTO;
 import com.mindhub.product_microservice.dtos.ProductDTO;
 import com.mindhub.product_microservice.dtos.ProductDTOResquest;
@@ -10,11 +11,14 @@ import com.mindhub.product_microservice.services.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -26,11 +30,14 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
+    @Autowired
+    private JwtUtils jwtUtils;
+
     @Operation(summary = "Get all products", description = "Retrieve a list of all products.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Products retrieved successfully."),
     })
-    @GetMapping()
+    @GetMapping("/public")
     public ResponseEntity<Set<ProductDTO>> getProducts(){
         Set<ProductDTO> products = this.productService.getAllProducts();
         return ResponseEntity.ok(products);
@@ -41,7 +48,7 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Product retrieved successfully."),
             @ApiResponse(responseCode = "404", description = "Product not found.")
     })
-    @GetMapping("/{id}")
+    @GetMapping("/admin/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) throws CustomException {
         try{
             Product product = productService.getProductById(id);
@@ -56,10 +63,16 @@ public class ProductController {
             @ApiResponse(responseCode = "201", description = "Product created successfully."),
             @ApiResponse(responseCode = "400", description = "Invalid input data."),
     })
-    @PostMapping()
+    @PostMapping("/admin")
     public ResponseEntity<ProductDTO> createProduct(@RequestBody ProductDTOResquest productDTOResquest){
         ProductDTO productDTO = this.productService.createProduct(productDTOResquest);
         return ResponseEntity.status(HttpStatus.CREATED).body(productDTO);
+    }
+
+    @PutMapping("/admin/{id}")
+    public ResponseEntity<ExistentProductDTO> updateProduct(@PathVariable Long id, @RequestBody ProductDTOResquest productDTOResquest) throws CustomException {
+        ExistentProductDTO updatedProduct = productService.updateProduct(id, productDTOResquest);
+        return ResponseEntity.ok(updatedProduct);
     }
 
 
@@ -68,11 +81,18 @@ public class ProductController {
             @ApiResponse(responseCode = "204", description = "Product deleted successfully."),
             @ApiResponse(responseCode = "404", description = "Product not found.")
     })
-    @DeleteMapping("/{id}")
+    @DeleteMapping("admin/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable("id") Long id){
         this.productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
+
+
+
+
+
+
+
 
 
     @Operation(summary = "Check available products", description = "Checks the availability of a list of products based on a list with the required quantity and returns a collection with those products and their stock")
@@ -80,7 +100,7 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Availability checked successfully."),
             @ApiResponse(responseCode = "400", description = "Invalid request body.")
     })
-    @PutMapping
+    @PutMapping()
     public ResponseEntity<HashMap<Long, Integer>> existsProducts(@RequestBody List<ProductQuantityDTO> productQuantityDTOList){
         HashMap<Long, Integer> products = productService.getAllAvailableProducts(productQuantityDTOList);
         return ResponseEntity.ok(products);
@@ -98,7 +118,6 @@ public class ProductController {
         productService.updateProductsQuantity(productQuantityList);
         return new ResponseEntity<String>("The update was successful", HttpStatus.OK);
     }
-
 
 }
 

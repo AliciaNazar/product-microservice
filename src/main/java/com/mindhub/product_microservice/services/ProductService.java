@@ -16,7 +16,7 @@ public interface ProductService {
 
     Set<ProductDTO> getAllProducts();
     ProductDTO createProduct(ProductDTOResquest productDTOResquest);
-    ProductDTO updateProduct(Long id, ProductDTOResquest productDTOResquest);
+//    ProductDTO updateProduct(Long id, ProductDTOResquest productDTOResquest);
     ProductDTO updateProductStock(Long id, ProductDTOResquest productDTOResquest);
     void deleteProduct(Long id);
     Product getProductById(Long id) throws CustomException;
@@ -25,4 +25,7 @@ public interface ProductService {
     ExistentProductDTO getOneAvailableProduct(ProductQuantityDTO productQuantity);
     void updateProductQuantity(Long idProduct, Integer quantity) throws CustomException;
     void updateProductsQuantity(List<ProductQuantityDTO> productQuantityList);
+    boolean existsProductByName(String name);
+
+    ExistentProductDTO updateProduct(Long id, ProductDTOResquest productDTOResquest) throws CustomException;
 }
